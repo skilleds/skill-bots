@@ -18,12 +18,13 @@ B27="$(printf 'b%.0s' $(seq 1 27))"
 C35="$(printf 'c%.0s' $(seq 1 35))"
 DISCORD_FALSO="M${A24}.abcdef.${B27}"
 TELEGRAM_FALSO="1234567890:${C35}"
+WA_FALSO="$(printf 'w%.0s' $(seq 1 30))"
 SLACK_FALSO="xo""xb-1234567890-abcdefghij"
 
 novo() { D="$TMP/$1"; mkdir -p "$D"; NOME="$1"; }
 f() {
   mkdir -p "$(dirname "$D/$1")"
-  sed "s/@@DISCORD@@/$DISCORD_FALSO/g; s/@@TELEGRAM@@/$TELEGRAM_FALSO/g; s/@@SLACK@@/$SLACK_FALSO/g" >"$D/$1"
+  sed "s/@@DISCORD@@/$DISCORD_FALSO/g; s/@@TELEGRAM@@/$TELEGRAM_FALSO/g; s/@@SLACK@@/$SLACK_FALSO/g; s/@@WA@@/$WA_FALSO/g; s/@@DA@@/$A24/g; s/@@DB@@/$B27/g" >"$D/$1"
 }
 esperar() {
   local esp="$1" agulha="$2" saida rc
@@ -231,6 +232,38 @@ async function enviar(canal, msgs) {
 }
 FIX
 esperar 0 "check-bot: ok"
+
+# ---------------- falsos verdes corrigidos (G8b)
+novo webhook-hmac-so-em-comentario
+f src/server.py <<'FIX'
+# discord interactions
+@app.post("/interactions")
+def inter():
+    # TODO hmac later
+    return handle(request.json)
+FIX
+esperar 1 "bot-webhook-sem-assinatura"
+novo dm-em-laco-user-send-v
+f src/dm.js <<'FIX'
+// discord
+for (const user of users) { await user.send("x"); }
+FIX
+esperar 1 "bot-envio-sem-429"
+novo token-whatsapp-eaa
+f config.yaml <<'FIX'
+wa_token: "EAA@@WA@@"
+FIX
+esperar 1 "bot-token-literal"
+novo token-matrix-syt
+f config.yaml <<'FIX'
+matrix_token: "syt_@@WA@@"
+FIX
+esperar 1 "bot-token-literal"
+novo token-discord-prefixo-livre
+f config.yaml <<'FIX'
+t: "Z@@DA@@.abcdef.@@DB@@"
+FIX
+esperar 1 "bot-token-literal"
 
 echo "== resultado: $ok ok, $fail falhas =="
 [ "$fail" -eq 0 ]

@@ -57,7 +57,7 @@ usuário com `@everyone`, ignora o `429` ou testa em canal real está a um deplo
 | Teste (pirâmide, dublê) e ataque (forja de interaction, replay) | `schematize-qa` · `schematize-pentest` | aqui o que provar |
 | Evento de uso do bot (tracking plan, sem conteúdo de mensagem) | `schematize-analytics` | |
 | Termos, privacidade, política de retenção publicada | `schematize-institutional` | aqui só o gatilho técnico |
-| Efeito externo fora de prd (base) | `schematize-engineering → references/efeitos-externos.md` | herdado, piso 1 |
+| Efeito externo fora de prd (base) | `schematize-engineering → references/efeitos-externos.md` | herdado, piso 18 da engineering |
 
 ## Comandos (Claude Code)
 
@@ -75,8 +75,10 @@ usuário com `@everyone`, ignora o `429` ou testa em canal real está a um deplo
 
 ## Como usar
 
-1. **Rode o gate:** `bash scripts/check-bot.sh .` — `0` passa · `1` reprova · `2` nada para verificar
-   (não é aprovação). Estático, sem dependência de linguagem ou SDK; waiver `bot-ok: <motivo>`.
+1. **Rode os gates:** `bash scripts/check-bot.sh .` e `bash scripts/check-external-effects.sh .` (piso 18 da
+   engineering: sink por default, guard dentro do provider, cap `BOT_MAX_MSGS_PER_RUN`, allowlist `BOT_TEST_ALLOWLIST`) —
+   `0` passa · `1` reprova · `2` nada para verificar (não é aprovação). Estático, sem dependência de linguagem ou
+   SDK; waiver `bot-ok: <motivo>`. Gate por commit é LOCAL; CI remoto só antes do hml/tag (piso 27).
 2. **Escolha o transporte** (`references/transporte-e-assinatura.md`): webhook/HTTP vs gateway vs polling.
 3. **Segredo primeiro** (`references/credenciais-e-token.md`) e **ambientes** (`references/ambientes-e-efeito-externo.md`).
 4. **Prazo, fila e limites** (`references/prazo-fila-rate-limit.md`).
@@ -97,7 +99,7 @@ Assets: `assets/CLAUDE.md` (sempre-on) · `assets/commands/`.
 
 ## Pisos inegociáveis (vetam o atalho)
 
-1. **Nunca mensagem real fora de prd.** Bot de teste, servidor/workspace/canal de teste, número de
+1. **Nunca mensagem real fora de prd** (piso 1 DESTA skill; na base é o piso 18). Bot de teste, servidor/workspace/canal de teste, número de
    teste; ambiente ausente ou desconhecido ⇒ não-prd; só o valor exato de produção fala em canal real;
    token de produção existe só em prd. <!-- herdado:engineering/efeito-externo:invariantes -->**Cap por execução** (`MAIL_MAX_PER_RUN`, default 50) com abort; **fail-closed** (ambiente ausente/desconhecido ⇒ não-prd; só o valor exato de produção entrega de verdade); **chave sandbox** fora de prd. Todo endereço sintético (fixture, seed, persona, demo, carga) é `<papel>+<run-id>-<n>@test.<domain>` — domínio em **rota nula** (null MX RFC 7505 + SPF `-all` + DMARC `p=reject`) ou TLD reservado (`.test`/`.invalid`/`.example`); **VETADO** `@gmail.com`, domínio de cliente/terceiro, e-mail de pessoa real (**inclusive o seu**) e o domínio de produção. A recusa é **erro**, nunca warning nem sucesso silencioso. Entregar de verdade fora de prd exige **as cinco** (ADR + allowlist ≤5 + cap + janela + subdomínio separado). Motivo: bounce/complaint em massa **queima IP e domínio** e derruba o transacional de prd — inclusive o **OTP de login** — com semanas de warm-up e utilidade zero (o incidente dos 5.000 e-mails só existiu porque nada contava).<!-- /herdado -->
 2. **Token é segredo.** Em cofre, por ambiente, nunca no repo, imagem, log, URL ou handoff; rotação
@@ -143,3 +145,5 @@ ou Gemini, imagem de banco com licença comercial, ou asset do cliente.
 - **`schematize-api`** · **`schematize-ai`** · **`schematize-iam`** · **`schematize-payments`** — divisas acima.
 - **`schematize-infra`** · **`schematize-docker`** · **`schematize-observability`** — deploy, imagem, métricas.
 - **`schematize-git`** · **`schematize-incident`** — token vazado e resposta.
+
+Herda os pisos 22–29 da `schematize-engineering` (git como trava de conclusão, deploy só do git, ops é o gate da IA, sem agents inúteis, relatório 30 min/handoff 6 h, CI remoto só antes do hml, microserviço autônomo, build em dev/hml + higiene).

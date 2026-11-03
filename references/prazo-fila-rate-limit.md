@@ -24,6 +24,15 @@ Dedupe persistente (Redis com TTL ou tabela com chave única): `update_id` (Tele
 `id` da interaction (Discord), `event_id` (Slack), `id` da mensagem (WhatsApp). Efeito colateral (envio,
 cobrança, moderação) só após marcar o id.
 
+## 3.1 Fila durável e resiliência (piso 28 da engineering)
+O ack no prazo só é seguro com **inbox durável**: grave `interaction_id`/`update_id` + payload (DB/Redis
+persistente, NUNCA memória) e só depois responda o ack; dedupe com TTL **maior** que a janela de reentrega
+da plataforma. Retry com backoff+jitter, **DLQ** para mensagem envenenada, shutdown gracioso que drena o
+em voo. Matriz mínima de teste (também em `/bot-review`): (1) boot com dependências fora; (2) 5xx/timeout
+do destino ⇒ item na fila, bot vivo; (3) reinício com fila cheia ⇒ drena sem perda nem duplicata;
+(4) reentrega idempotente; (5) envenenada ⇒ DLQ após N tentativas; (6) shutdown sem perda; (7) crash entre
+persistir e confirmar ⇒ sem perda. Gate da base: `check-resilience.sh`.
+
 ## 4. Sharding e escala
 Discord: sharding obrigatório a partir de **2.500 guilds** por shard; gateway reconecta com resume;
 Slack/Telegram escalam por réplicas stateless atrás de fila. Observabilidade (`schematize-observability`):

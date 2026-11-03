@@ -47,12 +47,15 @@ por_linha() {
   done < <(grep -nIE -e "$re" "$f" 2>/dev/null || true)
 }
 
+# código sem comentários (linha inteira e cauda), preservando a numeração: comentário NÃO prova verificação
+limpo() { sed -E 's/^[[:space:]]*(\/\/|#|--|\*|\/\*).*$//; s/[[:space:]](\/\/|#)[[:space:]].*$//' "$1"; }
+
 # primeira linha que casa (ou 0)
 primeira() { grep -nIiE -e "$2" "$1" 2>/dev/null | head -1 | cut -d: -f1 || true; }
 
-TOKEN_RE='[MNO][A-Za-z0-9_-]{23,25}\.[A-Za-z0-9_-]{6}\.[A-Za-z0-9_-]{27,}|\b[0-9]{8,10}:[A-Za-z0-9_-]{35}\b|xox[abposr]-[0-9A-Za-z-]{10,}|xapp-[0-9]-[A-Z0-9]+-[0-9]+-[0-9a-f]{20,}'
+TOKEN_RE='[A-Za-z][A-Za-z0-9_-]{23,25}\.[A-Za-z0-9_-]{6}\.[A-Za-z0-9_-]{27,}|\b[0-9]{8,10}:[A-Za-z0-9_-]{35}\b|xox[abposr]-[0-9A-Za-z-]{10,}|xapp-[0-9]-[A-Z0-9]+-[0-9]+-[0-9a-f]{20,}|xoxe(\.xox[bp])?-[0-9]-[A-Za-z0-9-]{20,}|\bEAA[A-Za-z0-9]{20,}\b|\bsyt_[A-Za-z0-9_-]{16,}'
 VERIFICA_RE='(verify_?key|verifyKey|verify_?signature|ed25519|X-Signature-Ed25519|secret_token|X-Telegram-Bot-Api-Secret-Token|X-Slack-Signature|signing_?secret|X-Hub-Signature-256|x-hub-signature|hs_token|timingSafeEqual|compare_digest|ConstantTimeCompare|secure_compare|hmac)'
-ENVIO_RE='(channel\.send|\.sendMessage|send_message|chat\.postMessage|chat_postMessage|messages\.create|bot\.send|\.send_text|createMessage|create_message)\('
+ENVIO_RE='(channel\.send|\.sendMessage|send_message|chat\.postMessage|chat_postMessage|messages\.create|bot\.send|\.send_text|createMessage|create_message|(user|member|dm|author|interaction\.followup|followup)\.send|\.reply|\.followUp)\('
 LACO_RE='(^|[^A-Za-z_])(for|while)[[:space:](]|\.forEach\(|for_each|\.each[[:space:]({]|\.map\(|asyncio\.gather|Promise\.all'
 TRATA429_RE='(429|retry[_-]?after|rate[_-]?limit|ratelimit|RateLimit|retryAfter|FloodWait|too many requests)'
 INTENT_RE='(MESSAGE_CONTENT|message_content|MessageContent|GUILD_MEMBERS|GuildMembers|GUILD_PRESENCES|GuildPresences|intents\.(members|presences)|privileged_intents)'
@@ -83,7 +86,7 @@ for f in "${arquivos[@]}"; do
   [[ "$rel" =~ $TEST_RE ]] && continue
 
   # --- setWebhook do Telegram sem secret_token
-  if grep -qiE 'setWebhook|set_webhook' "$f" && ! grep -qiE 'secret_token' "$f"; then
+  if grep -qiE 'setWebhook|set_webhook' "$f" && ! limpo "$f" | grep -qiE 'secret_token'; then
     n="$(primeira "$f" 'setWebhook|set_webhook')"
     achado "$f" "${n:-0}" bot-telegram-sem-secret-token \
       'setWebhook sem secret_token: qualquer um pode forjar updates no seu endpoint'
@@ -93,7 +96,7 @@ for f in "${arquivos[@]}"; do
   if grep -qiE '(discord|telegram|slack|whatsapp|matrix|interaction)' "$f" \
      && grep -qiE '["/](interactions|webhook|webhooks|slack/events|telegram|whatsapp)["/ ]?' "$f" \
      && grep -qiE '(post|route|router|handler|controller|endpoint|@app\.|app\.(post|put)|def |func |fn |function |async )' "$f"; then
-    if ! grep -qiE "$VERIFICA_RE" "$f"; then
+    if ! limpo "$f" | grep -qiE "$VERIFICA_RE"; then
       n="$(primeira "$f" '["/](interactions|webhook|webhooks|slack/events|telegram|whatsapp)')"
       achado "$f" 0 bot-webhook-sem-assinatura \
         "handler de webhook/interactions de bot sem verificação de assinatura (Ed25519, secret_token, signing secret ou X-Hub-Signature-256), linha ${n:-?}"
@@ -110,7 +113,7 @@ for f in "${arquivos[@]}"; do
   fi
 
   # --- laço de envio sem tratamento de 429
-  if ! grep -qiE "$TRATA429_RE" "$f"; then
+  if ! limpo "$f" | grep -qiE "$TRATA429_RE"; then
     while IFS=: read -r n _; do
       [ -n "$n" ] || continue
       ini=$((n > 8 ? n - 8 : 1))
