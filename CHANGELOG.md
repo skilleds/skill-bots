@@ -3,7 +3,7 @@
 Todas as mudanças relevantes deste pacote, no formato [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/),
 com versionamento [SemVer](https://semver.org/lang/pt-BR/).
 
-## [Não lançado]
+## [0.2.0] — 2026-11-03
 ### Adicionado
 - `scripts/check-bot-effects.sh` (+ teste vermelho→verde): gate do piso 18 (provider default = sink, guard dentro do provider fail-closed, allowlist, cap `BOT_MAX_MSGS_PER_RUN`, token de prd em env não-prd).
 - Piso 28 (inbox durável + matriz de 7 testes) e piso 20 (matriz da rota de webhook); bloco herdado pisos 22–29.
