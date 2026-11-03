@@ -1,7 +1,7 @@
 ---
 name: schematize-bots
 metadata:
-  version: 0.1.0
+  version: 0.2.0
 description: >-
   Bots Discord, Telegram, Slack, WhatsApp e Matrix: token em cofre, webhook assinado, ack e fila, 429, intents mínimas. Use ao criar ou revisar bot. Gate check-bot.sh. LLM: schematize-ai.
 ---
@@ -14,7 +14,7 @@ Business (Cloud API) e Matrix. A tese: **bot é uma credencial de longa vida com
 efeito externo em massa**. Quem commita o token, aceita webhook sem checar assinatura, ecoa texto de
 usuário com `@everyone`, ignora o `429` ou testa em canal real está a um deploy do incidente.
 
-**Versão:** skill `schematize-bots` v0.1.0. Changelog em `CHANGELOG.md`.
+**Versão:** skill `schematize-bots` v0.2.0. Changelog em `CHANGELOG.md`.
 
 ## Precedência e herança (leia antes de divergir)
 

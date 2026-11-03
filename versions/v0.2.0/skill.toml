@@ -1,0 +1,12 @@
+slug = "bots"
+name = "schematize-bots"
+tag = "Disciplina · Bots e chat"
+status = "beta"
+order = 50
+current_version = "0.2.0"
+href = "/bots"
+
+[descriptions]
+pt = "Bots para Discord, Telegram, Slack, WhatsApp Business e Matrix sem incidente: token em cofre, webhook com assinatura verificada, ack no prazo e fila, rate limit com 429, dedupe, intents mínimas, entrada do usuário não confiável, LGPD e nunca mensagem real fora de prd."
+en = "Bots for Discord, Telegram, Slack, WhatsApp Business and Matrix without incidents: token in a vault, verified webhook signatures, ack within the deadline plus a queue, rate limits and 429, dedupe, minimal intents, untrusted user input, privacy and never real messages outside prd."
+es = "Bots para Discord, Telegram, Slack, WhatsApp Business y Matrix sin incidentes: token en bóveda, webhook con firma verificada, ack en plazo y cola, rate limit y 429, dedupe, intents mínimos, entrada no confiable, privacidad y nunca mensajes reales fuera de prd."

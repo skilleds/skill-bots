@@ -3,7 +3,7 @@ name = "schematize-bots"
 tag = "Disciplina · Bots e chat"
 status = "beta"
 order = 50
-current_version = "0.1.0"
+current_version = "0.2.0"
 href = "/bots"
 
 [descriptions]
