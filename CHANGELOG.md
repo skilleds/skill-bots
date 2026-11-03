@@ -5,8 +5,10 @@ com versionamento [SemVer](https://semver.org/lang/pt-BR/).
 
 ## [Não lançado]
 ### Adicionado
-- `scripts/check-external-effects.sh` (+ teste vermelho→verde): gate do piso 18 (provider default = sink, guard dentro do provider fail-closed, allowlist, cap `BOT_MAX_MSGS_PER_RUN`, token de prd em env não-prd).
+- `scripts/check-bot-effects.sh` (+ teste vermelho→verde): gate do piso 18 (provider default = sink, guard dentro do provider fail-closed, allowlist, cap `BOT_MAX_MSGS_PER_RUN`, token de prd em env não-prd).
 - Piso 28 (inbox durável + matriz de 7 testes) e piso 20 (matriz da rota de webhook); bloco herdado pisos 22–29.
+### Alterado
+- Gate do piso 18 renomeado `check-external-effects.sh` -> `check-bot-effects.sh` (+ `.test.sh`): o nome antigo é da cópia canônica herdada da engineering (restaurada por `sync-herdados`). `check-bot.sh` agora CHAMA `check-bot-effects.sh`: rodar o gate principal já cobre o efeito externo (rc 2 do auxiliar não reprova).
 ### Corrigido
 - Citação "piso 1" para efeito externo ⇒ piso 18 da engineering.
 - `check-bot.sh`: comentário não prova verificação de assinatura/429/secret_token; `ENVIO_RE` cobre `user.send`, `followup.send`, `.reply`; `TOKEN_RE` cobre WhatsApp `EAA`, Matrix `syt_`, Slack `xoxe`, Discord com prefixo livre.

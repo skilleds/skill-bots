@@ -26,5 +26,5 @@ bash "$T/skill-bots/install.sh" .        # instala em .claude/ do projeto atual
 - **SKILL.md** — o contrato: 14 pisos, fronteiras com as demais skills e o mapa de references.
 - **references/** — credenciais, transporte e assinatura, prazo/fila/rate limit, comandos e intents,
   moderação e privacidade, ambientes e efeito externo, `stack-versoes` (anexo volátil com fonte e data).
-- **scripts/** — `check-bot.sh` (gate estático, waiver `bot-ok:`), `check-external-effects.sh` (piso 18: sink, guard, cap) e os `.test.sh`.
+- **scripts/** — `check-bot.sh` (gate estático, waiver `bot-ok:`), `check-bot-effects.sh` (piso 18: sink, guard, cap) e os `.test.sh`.
 - **assets/** — `CLAUDE.md` sempre-on e comandos `/bot-*`.

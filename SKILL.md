@@ -75,7 +75,7 @@ usuário com `@everyone`, ignora o `429` ou testa em canal real está a um deplo
 
 ## Como usar
 
-1. **Rode os gates:** `bash scripts/check-bot.sh .` e `bash scripts/check-external-effects.sh .` (piso 18 da
+1. **Rode os gates:** `bash scripts/check-bot.sh .` e `bash scripts/check-bot-effects.sh .` (piso 18 da
    engineering: sink por default, guard dentro do provider, cap `BOT_MAX_MSGS_PER_RUN`, allowlist `BOT_TEST_ALLOWLIST`) —
    `0` passa · `1` reprova · `2` nada para verificar (não é aprovação). Estático, sem dependência de linguagem ou
    SDK; waiver `bot-ok: <motivo>`. Gate por commit é LOCAL; CI remoto só antes do hml/tag (piso 27).

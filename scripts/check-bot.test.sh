@@ -226,12 +226,24 @@ f src/envio.ts <<'FIX'
 // discord
 async function enviar(canal, msgs) {
   for (const m of msgs) {
+    // bot-ok: fixture sem provider; guard coberto em check-bot-effects.test.sh
     const r = await canal.send({ content: m, allowedMentions: { parse: [] } });
     if (r.status === 429) await dormir(r.headers["retry-after"]);
   }
 }
 FIX
+f src/sink.ts <<'FIX'
+export class SinkProvider { send(dest: string, text: string) { console.log("sink", dest, text); } }
+FIX
 esperar 0 "check-bot: ok"
+
+# ---------------- gate principal inclui o piso 18 (check-bot-effects.sh)
+novo vermelho-efeito-externo-via-gate-principal
+f src/handler.py <<'FIX'
+async def on_msg(channel, text):
+    await channel.send(text)
+FIX
+esperar 1 "bot-envio-sem-guard"
 
 # ---------------- falsos verdes corrigidos (G8b)
 novo webhook-hmac-so-em-comentario

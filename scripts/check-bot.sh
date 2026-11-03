@@ -129,6 +129,14 @@ if [ "$verificados" -eq 0 ]; then
   echo "check-bot: nenhum arquivo de texto para verificar em $raiz (exit 2: isto NÃO é aprovação)" >&2
   exit 2
 fi
+# piso 18 (efeito externo): o gate principal também roda check-bot-effects.sh (mesmo diretório),
+# para que quem roda só este gate pegue o efeito externo. rc 2 do auxiliar (nada a verificar) não reprova.
+AQUI="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if [ -f "$AQUI/check-bot-effects.sh" ]; then
+  rc_ef=0
+  bash "$AQUI/check-bot-effects.sh" "$raiz" || rc_ef=$?
+  [ "$rc_ef" -eq 0 ] || [ "$rc_ef" -eq 2 ] || achados=$((achados + 1))
+fi
 if [ "$achados" -gt 0 ]; then
   echo "check-bot: $achados achado(s) em $verificados arquivo(s)" >&2
   exit 1

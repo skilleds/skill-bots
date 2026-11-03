@@ -1,103 +1,56 @@
 #!/usr/bin/env bash
-# Vermelho->verde do gate check-external-effects.sh (bots, piso 18).
-# EXCEÇÃO DECLARADA (schematize-shell): harness `set -u` sem `-e` para reportar todos os casos.
-set -u
-AQUI="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-G="$AQUI/check-external-effects.sh"
-TMP="$(mktemp -d)"
-trap 'rm -rf "${TMP:?}"' EXIT INT TERM
-ok=0; fail=0; D=""; NOME=""
-novo() { D="$TMP/$1"; mkdir -p "$D"; NOME="$1"; }
-f() { mkdir -p "$(dirname "$D/$1")"; cat >"$D/$1"; }
-esperar() {
-  local esp="$1" agulha="$2" saida rc
-  saida="$(bash "$G" "$D" 2>&1)"; rc=$?
-  if [ "$rc" != "$esp" ]; then echo "  ✖ $NOME: exit $rc, esperado $esp"; sed 's/^/      /' <<<"$saida"; fail=$((fail+1)); return; fi
-  if [ -n "$agulha" ] && ! grep -qF -- "$agulha" <<<"$saida"; then echo "  ✖ $NOME: saída sem \"$agulha\""; sed 's/^/      /' <<<"$saida"; fail=$((fail+1)); return; fi
-  echo "  ✔ $NOME"; ok=$((ok+1))
-}
-echo "== gate external-effects (bot) =="
+# herdado de schematize-engineering — não edite aqui (fonte: skill-engineering/scripts/check-external-effects.test.sh; regenere: node tools/sync-herdados.mjs)
+# check-external-effects.test.sh — o VERMELHO VISTO do gate de efeito externo.
+#
+# Motivo: o gate existia em UM lugar (schematize-engineering) e NUNCA tinha reprovado de proposito.
+# Piso sem vermelho visto e prosa: o ADR-0004 nasceu de um incidente de >5.000 e-mails, e um gate
+# que nunca travou nao prova nada. Este teste planta cada uma das violacoes e exige exit 1.
+# Entrada: nenhuma. Saida: exit 0 todos os casos passam - exit 1 algum caso falhou.
+# EXCEÇÃO DECLARADA de strict mode (`schematize-shell` -> `references/piso.md` secao 1):
+# harness de teste roda sem `-e` de propósito — ele precisa continuar depois de um caso
+# vermelho para reportar TODOS, em vez de parar no primeiro.
+set -uo pipefail
+G="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/check-external-effects.sh"
+W="$(mktemp -d)"; trap 'rm -rf "$W"' EXIT
+rc=0
 
-novo vazio; mkdir -p "$D"; esperar 2 "nenhum arquivo"
+echo "── projeto limpo passa"
+P="$W/limpo"; mkdir -p "$P/test"
+printf 'user = "qa+1@test.exemplo.test"\n' > "$P/test/seed.sql"
+printf 'APP_ENV=dev\nRESEND_API_KEY=re_sandbox_xxx\nMAIL_MAX_PER_RUN=50\n' > "$P/.env"
+OUT=$(bash "$G" "$P" 2>&1); z=$?
+if [ "$z" -eq 0 ]; then echo "  ✔ exit 0"; else echo "  ✖ exit $z: $OUT"; rc=1; fi
 
-PROVIDER_OK='import os
-class SinkProvider:
-    def send(self, dest, text): print("sink", dest)
-class OutboundGuard:
-    def __init__(self):
-        self.env = os.environ.get("BOT_ENV", "dev")
-        self.cap = int(os.environ.get("BOT_MAX_MSGS_PER_RUN", "20"))
-        self.allow = os.environ.get("BOT_TEST_ALLOWLIST", "").split(",")
-        self.enviadas = 0
-    def provider(self):
-        return RealProvider(self) if self.env == "prd" else SinkProvider()
-class RealProvider:
-    def __init__(self, g): self.g = g
-    def post(self, ch, text):
-        if self.g.env != "prd" and ch not in self.g.allow: raise PermissionError("fora de prd")
-        if self.g.enviadas >= self.g.cap: raise RuntimeError("cap")
-        ch.send(text)
-'
-novo verde-provider-com-guard
-printf '%s' "$PROVIDER_OK" | f src/provider.py
-esperar 0 "ok ("
+echo "── e-mail de CAIXA REAL em seed BLOQUEIA (o acidente das 5.000 mensagens)"
+P="$W/real"; mkdir -p "$P/test"
+printf "INSERT INTO users (email) VALUES ('fulano@gmail.com');\n" > "$P/test/seed.sql"
+OUT=$(bash "$G" "$P" 2>&1); z=$?
+if [ "$z" -eq 1 ] && grep -q 'caixa REAL' <<<"$OUT"; then echo "  ✔ exit 1"; else echo "  ✖ exit $z: $OUT"; rc=1; fi
 
-novo vermelho-envio-direto-sem-guard
-f src/handler.py <<'FIX'
-async def on_msg(channel, text):
-    await channel.send(text)
-FIX
-esperar 1 "bot-envio-sem-guard"
+echo "── chave de provedor NAO-sandbox em .env de dev BLOQUEIA"
+P="$W/chave"; mkdir -p "$P"
+printf 'APP_ENV=hml\nRESEND_API_KEY=re_live_abc123def456\nMAIL_MAX_PER_RUN=50\n' > "$P/.env"
+OUT=$(bash "$G" "$P" 2>&1); z=$?
+if [ "$z" -eq 1 ] && grep -q 'credencial de provedor' <<<"$OUT"; then echo "  ✔ exit 1"; else echo "  ✖ exit $z: $OUT"; rc=1; fi
 
-novo vermelho-guard-so-em-comentario
-f src/provider.py <<'FIX'
-# if env == "prd" and BOT_TEST_ALLOWLIST and BOT_MAX_MSGS_PER_RUN
-class Sink: pass
-def go(ch): ch.send("x")
-FIX
-esperar 1 "bot-envio-sem-guard"
+echo "── .env SEM ambiente declarado e tratado como NAO-prd (fail-closed)"
+P="$W/semenv"; mkdir -p "$P"
+printf 'RESEND_API_KEY=re_live_abc123def456\nMAIL_MAX_PER_RUN=50\n' > "$P/.env"
+OUT=$(bash "$G" "$P" 2>&1); z=$?
+if [ "$z" -eq 1 ]; then echo "  ✔ exit 1 (config ausente nao vira permissao)"; else echo "  ✖ exit $z: $OUT"; rc=1; fi
 
-novo vermelho-default-prd
-printf '%s' "$PROVIDER_OK" | sed 's/"BOT_ENV", "dev"/"BOT_ENV", "production"/' | f src/provider.py
-esperar 1 "bot-default-prd"
+echo "── envio configurado SEM cap por execucao avisa"
+P="$W/semcap"; mkdir -p "$P"
+printf 'APP_ENV=dev\nSMTP_HOST=localhost\n' > "$P/.env"
+OUT=$(bash "$G" "$P" 2>&1)
+if grep -q 'cap por execução' <<<"$OUT"; then echo "  ✔ avisou"; else echo "  ✖ silencio: $OUT"; rc=1; fi
 
-novo vermelho-lista-negra
-printf '%s\n' "$PROVIDER_OK" 'def x(env, ch):' '    if env != "dev": ch.send("a")' | f src/provider.py
-esperar 1 "bot-guard-nao-fail-closed"
+echo "── ambiente de PRODUCAO nao e barrado pela regra de chave"
+P="$W/prd"; mkdir -p "$P"
+printf 'APP_ENV=production\nRESEND_API_KEY=re_live_abc123def456\nMAIL_MAX_PER_RUN=50\n' > "$P/.env"
+OUT=$(bash "$G" "$P" 2>&1); z=$?
+if [ "$z" -eq 0 ]; then echo "  ✔ exit 0 (o piso e sobre NAO-producao)"; else echo "  ✖ exit $z: $OUT"; rc=1; fi
 
-novo vermelho-sem-sink
-f src/provider.py <<'FIX'
-import os
-ENV = os.environ.get("BOT_ENV")
-CAP = os.environ.get("BOT_MAX_MSGS_PER_RUN")
-ALLOW = os.environ.get("BOT_TEST_ALLOWLIST")
-def send(ch):
-    if ENV == "prd": ch.send("x")
-FIX
-esperar 1 "bot-sem-sink"
-
-novo vermelho-token-prd-em-env-dev
-f .env.dev <<'FIX'
-BOT_TOKEN_PRD=abc
-FIX
-esperar 1 "bot-prd-em-nao-prd"
-
-novo vermelho-token-prd-waiver-nao-vale
-f config/dev.yaml <<'FIX'
-# bot-ok: preciso
-DISCORD_TOKEN_PROD: abc
-FIX
-esperar 1 "bot-prd-em-nao-prd"
-
-novo verde-token-prd-em-env-prd
-f .env.prd <<'FIX'
-BOT_TOKEN_PRD=abc
-FIX
-esperar 0 "ok ("
-
-novo verde-waiver
-printf '%s\n' "$PROVIDER_OK" 'def y(ch):' '    ch.send("a")  # bot-ok: so teste manual local' | f src/provider.py
-esperar 0 "ok ("
-
-echo "== $ok ok, $fail falha(s) =="
-[ "$fail" -eq 0 ]
+echo
+[ $rc -eq 0 ] && echo "✔ check-external-effects.test.sh: todos os casos" || echo "✖ check-external-effects.test.sh: falhou"
+exit $rc
