@@ -16,8 +16,9 @@ schematize install bots    # requer o CLI schematize instalado
 Manual:
 
 ```bash
-git clone https://github.com/schematizeme/skill-bots.git "$(mktemp -d)/skill-bots"
-bash "$(mktemp -d)/skill-bots"/install.sh .        # instala em .claude/ do projeto atual
+T="$(mktemp -d)"   # nunca /tmp fixo
+git clone https://github.com/schematizeme/skill-bots.git "$T/skill-bots"
+bash "$T/skill-bots/install.sh" .        # instala em .claude/ do projeto atual
 ```
 
 ## O que tem dentro
